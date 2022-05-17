@@ -1,4 +1,7 @@
+from calendar import TextCalendar
+import os
 import tkinter as tk
+from tkinter import ttk
 from tkinter import *
 import tkinter
 import random
@@ -8,28 +11,43 @@ from tkinter.messagebox import askretrycancel
 import json
 import operator
 
-scores = {
-    "score1":5,
-    "score2":4,
-    "score3":3,
-    "score4":0,
-    "score5":10,
-    "score6":0,
-    "score7":0,
-    "score8":0,
-    "score9":0,
-    "score10":0
-}
+def check():
+    global highscoreList
+    playerName = nameVar.get()
+    highscoreList.append((playerName, scoreLabel['text']))
+    highscoreList = sorted(highscoreList, key = operator.itemgetter(1), reverse = True)[:10]
+    if len(highscoreList) > 10:
+        highscoreList.pop(-1)
 
-scoresString = json.dumps(scores)
-scoresDictionary = json.loads(scoresString)
-print("scores:",scoresDictionary)
-with open("C:/Users/Jurrian/Documents/Projecten/file-remember/highscores.json", 'w') as file:
-    json.dump(scores, file)
-maxKey = max(scores, key=scores.get)
-print(maxKey)
-sorted_d = dict(sorted(scores.items(), key=operator.itemgetter(1),reverse=True))
-print("Hoog naar laag",sorted_d)
+    with open('data/highscore.json', 'w') as f:
+        json.dump(highscoreList, f)
+    retry()
+
+def highscoreSave():
+    global highscoreList, nameVar, textLabel, nameEntry, continueButton
+    nameVar = tkinter.StringVar()
+    textLabel = tkinter.Label(text="Enter your name")
+    textLabel.pack()
+    nameEntry = tkinter.Entry(textvariable=nameVar)
+    nameEntry.pack()
+    continueButton = tkinter.Button(text="continue", command=check)
+    continueButton.pack()
+
+
+if os.path.exists("data/highscore.json"):
+    with open('data/highscore.json', 'r') as f:
+        highscoreList = json.load(f)
+else:
+    with open("data/highscore.json","w") as file:
+        highscoreList = []
+        data = json.dumps(highscoreList)
+        json.dump(data, file)
+try:
+    highscore = int(highscoreList[0][1])
+except:
+    highscore = 0
+
+
 
 actions  = ["press w", "press a", "press s", "press d", "single click", "double click", "triple click"]
 window = tk.Tk()
@@ -66,7 +84,7 @@ def clock():
         timer -= 1
         timeVar.set(str(timer))
         if timer == 0:
-            retry()
+            highscoreSave()
     
 def startTimer():
     global counter, timerlabel, scoreLabel
@@ -110,22 +128,23 @@ def key():
     window.bind("<Key>",key_pressed)
 
 def retry():
-    global now, scoreLabel, e
+    global now, scoreLabel, score
     retry = askretrycancel("Retry?", f"""
     Your score: {score}.
     Do you want to retry?""")
-    if scoreLabel["text"] > scores[maxKey]:
-        scores[maxKey] = scoreLabel['text']
-    print("new scores:",scores)
     if retry:
+        score = 0
         scoreLabel["text"] = 0
-        actionLabel.destroy()
+        actionLabel.place_forget()
+        textLabel.destroy()
+        nameEntry.destroy()
+        continueButton.destroy()
         timerlabel.destroy()
         startTimer()
     else:
         window.destroy()
 
-start = tk.Button(window, text="Click here to start", command=startTimer)
+start = ttk.Button(window, text="Click here to start", command=startTimer)
 start.pack()
 
 
